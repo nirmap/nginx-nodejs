@@ -30,14 +30,14 @@ Resources:
           curl --silent --location https://rpm.nodesource.com/setup_12.x | bash -
           sudo yum install -y nodejs 
           sudo su
-          echo "var http = require('http');" >> myfile.js
-          echo "var hostobject = require('os');" >> myfile.js
-          echo  "var hostname = hostobject.hostname();" >> myfile.js
-          echo "http.createServer(function (request, response) {" >> myfile.js
-          echo "  response.writeHead(200, {'Content-Type': 'text/html'});" >> myfile.js
-          echo "  response.end('<HTML><H1>Congratulations Nodejs is installed.');</H1></HTML>" >> myfile.js 
-          echo "}).listen(5000, hostname);" >> myfile.js  
-          node myfile.js
+          echo "var http = require('http');" >> app.js
+          echo "var os = require('os');" >> app.js
+          echo  "var hostname = os.hostname();" >> app.js
+          echo "http.createServer(function (req, res) {" >> app.js
+          echo "  res.writeHead(200, {'Content-Type': 'text/html'});" >> app.js
+          echo "  res.end('<HTML><H1>Welcome to Node.js</H1></HTML>');" >> app.js 
+          echo "}).listen(3000, hostname);" >> app.js  
+          node app.js
   MySecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
@@ -53,8 +53,8 @@ Resources:
           ToPort: '22'
           CidrIp: !Ref SSHLocation
         - IpProtocol: tcp
-          FromPort: '5000'
-          ToPort: '5000'
+          FromPort: '3000'
+          ToPort: '3000'
           CidrIp: !Ref SSHLocation
         
       
