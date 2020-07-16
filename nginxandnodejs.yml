@@ -1,0 +1,60 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  AWS CloudFormation Sample Template
+Parameters: 
+  SSHLocation:
+    Description: The IP address range that can be used to SSH to the EC2 instances
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    Default: 0.0.0.0/0
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+    ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
+Resources:
+  MyDevInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: ap-south-1a
+      ImageId: ami-03b5297d565ef30a6
+      InstanceType: t2.micro
+      KeyName: MyKeyPair
+      SecurityGroups:
+        - !Ref MySecurityGroup
+      UserData:
+        Fn::Base64:
+          !Sub |
+          #!/bin/bash -xe
+          amazon-linux-extras install -y nginx1.12
+          service nginx start
+          curl --silent --location https://rpm.nodesource.com/setup_12.x | bash -
+          sudo yum install -y nodejs 
+          sudo su
+          echo "var http = require('http');" >> myfile.js
+          echo "var hostobject = require('os');" >> myfile.js
+          echo  "var hostname = hostobject.hostname();" >> myfile.js
+          echo "http.createServer(function (request, response) {" >> myfile.js
+          echo "  response.writeHead(200, {'Content-Type': 'text/html'});" >> myfile.js
+          echo "  response.end('<HTML><H1>Congratulations Nodejs is installed.');</H1></HTML>" >> myfile.js 
+          echo "}).listen(5000, hostname);" >> myfile.js  
+          node myfile.js
+  MySecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: >-
+        Enable port 80 and 22
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: !Ref SSHLocation
+        - IpProtocol: tcp
+          FromPort: '5000'
+          ToPort: '5000'
+          CidrIp: !Ref SSHLocation
+        
+      
