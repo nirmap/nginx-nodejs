@@ -1,0 +1,95 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  AWS CloudFormation Sample Template
+Parameters: 
+  SSHLocation:
+    Description: The IP address range that can be used to SSH to the EC2 instances
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    Default: 0.0.0.0/0
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+    ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
+Resources:
+  MyDevInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      AvailabilityZone: ap-south-1a
+      ImageId: ami-03b5297d565ef30a6
+      InstanceType: t2.micro
+      KeyName: MyKeyPair
+      SecurityGroups:
+        - !Ref MySecurityGroup    
+      UserData: 
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash -xe
+            # Get the latest CloudFormation package
+            yum update -y aws-cfn-bootstrap
+            # Start cfn-init
+            /opt/aws/bin/cfn-init -s ${AWS::StackId} -r MyDevInstance --region ${AWS::Region}
+            # Start cfn-signal to the wait condition
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackId} --resource MyDevInstance --region ${AWS::Region}
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: PT3M        
+    Metadata:
+      Comment: Install a simple js page
+      AWS::CloudFormation::Init:
+        configSets: 
+          ascending: 
+            - "config1"
+            - "config2"
+        config1:                   
+          commands:
+            hello1:
+              command: curl --silent --location https://rpm.nodesource.com/setup_12.x | bash -
+        config1:                   
+          commands:
+            hello2:
+              command: sudo yum install -y nodejs
+            hello3:
+              command: cd /var/www/html/
+            hello4:
+              command: node app.js
+          files:
+            "/var/www/html/app.js":
+              content: !Sub |
+                var http = require('http');
+                    http.createServer(function (req, res) {
+                      res.writeHead(200, {'Content-Type': 'text/plain'});
+                      res.end('Welcome Node.js');
+                    }).listen(3000, "$(hostname)");
+                    console.log('Server running at http://$(hostname):3000/');
+              mode: '000644' 
+          services:
+            sysvinit:
+              nginx:
+                enabled: 'true'
+                ensureRunning: 'true'
+              nvm:
+                enabled: 'true'
+                ensureRunning: 'true'
+
+  MySecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: >-
+        Enable port 80 and 22
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: !Ref SSHLocation
+        - IpProtocol: tcp
+          FromPort: '3000'
+          ToPort: '3000'
+          CidrIp: !Ref SSHLocation
+        
+      
